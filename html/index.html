@@ -169,6 +169,11 @@ function sendreq() {
 
 }
 
+function sendreq_0() {
+  var v = document.getElementById("text").value = "okokok";
+  sendreq();
+}
+
 
 </script>
 
@@ -178,7 +183,7 @@ function sendreq() {
 		<div class="avatar"> <h1> Tile Library Server </h1> </div>
 
 		<div class="content">
-      <a href='#'>sample0</a>, <a href='#'>sample1</a>
+      <a href='#' onclick='sendreq_0();' >sample0</a>, <a href='#'>sample1</a>
 			<p>
       <!-- <form action="/u" method="POST"> -->
       <textarea id='text' name='text' rows="10" cols="50" ></textarea>
