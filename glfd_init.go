@@ -8,7 +8,80 @@ import "strings"
 import "strconv"
 import "io/ioutil"
 
+import "github.com/aebruno/twobit"
 import "github.com/abeconnelly/sloppyjson"
+
+func (glfd *GLFD) InitSpan(span_fn string) error {
+
+  f,e := os.Open(span_fn)
+  if e!=nil { return e }
+  defer f.Close()
+
+  gr,e := gzip.NewReader(f)
+  if e!=nil { return e }
+  defer gr.Close()
+
+  glfd.TileLibSpan = make( map[int]map[int]map[int]int )
+
+  scanner := bufio.NewScanner(gr)
+  for scanner.Scan() {
+    t := scanner.Text()
+    if len(t)==0 { continue }
+    kv := strings.Split(t,",")
+    tileid_parts := strings.Split(kv[0], ".")
+    span,e := strconv.Atoi(kv[1])
+    if e!=nil { return e }
+
+    p,e := strconv.ParseInt(tileid_parts[0], 16, 64)
+    if e!=nil { return e}
+
+    ver,e := strconv.ParseInt(tileid_parts[1], 16, 64) ; _ = ver
+    if e!=nil { return e}
+
+    s,e := strconv.ParseInt(tileid_parts[2], 16, 64)
+    if e!=nil { return e}
+
+    v,e := strconv.ParseInt(tileid_parts[3], 16, 64)
+    if e!=nil { return e}
+
+    if _,ok := glfd.TileLibSpan[int(p)] ; !ok {
+      glfd.TileLibSpan[int(p)] = make( map[int]map[int]int )
+    }
+
+    if _,ok := glfd.TileLibSpan[int(p)][int(s)] ; !ok {
+      glfd.TileLibSpan[int(p)][int(s)] = make( map[int]int )
+    }
+
+    glfd.TileLibSpan[int(p)][int(s)][int(v)] = span
+
+  }
+
+  return nil
+}
+
+func (glfd *GLFD) InitTagset(tagset_2bit_fn string) error {
+  fp,err := os.Open(tagset_2bit_fn)
+  if err!=nil { return err }
+  defer fp.Close()
+
+  tb,err := twobit.NewReader(fp)
+  if err!=nil { return err }
+
+  glfd.Tagset = make( map[int]string )
+
+  names := tb.Names()
+  for i:=0; i<len(names); i++ {
+    parts := strings.Split(names[i], ".")
+    p,e := strconv.ParseInt(parts[0], 16, 64)
+    if e!=nil { return e }
+
+    b,e := tb.Read(names[i])
+    if e!=nil {return e}
+    glfd.Tagset[int(p)] = string(b)
+  }
+
+  return nil
+}
 
 func (glfd *GLFD) InitHg19(hg19_json_fn string) error {
 
@@ -121,6 +194,7 @@ func (glfd *GLFD) InitCache() error {
 
   n:=len(glfd.RefV["hg19"]) ; _ = n
 
+  //TESTING!!!!
   //test one cache path for now
   p := 0x2fb
   //for p:=0; p<n; p++ {
@@ -150,20 +224,54 @@ func (glfd *GLFD) InitCache() error {
   return nil
 }
 
-func GLFDInit(glfd_dir, assembly_fn string) (*GLFD,error) {
+func GLFDInit(glfd_dir, assembly_fn, tagset_fn, span_fn string) (*GLFD,error) {
   var glfd GLFD
 
+  local_debug := true
+
   glfd.GLFDir = glfd_dir
+
+  //---
+
+  if local_debug { fmt.Printf("initializing hg19.json...\n") }
 
   e := glfd.InitHg19("js/hg19.json")
   if e!=nil { return nil, e }
 
+  if local_debug { fmt.Printf("...done\n") }
+
+  //---
+
+  if local_debug { fmt.Printf("initializing assembly...\n") }
 
   e = glfd.InitAssembly(assembly_fn)
   if e!=nil { return nil, e }
 
-  e = glfd.InitCache()
-  if e!=nil { return nil, e }
+  if local_debug { fmt.Printf("... done\n") }
+
+  //---
+
+  if local_debug { fmt.Printf("initializing tagset...\n") }
+
+  e = glfd.InitTagset(tagset_fn)
+
+  if local_debug { fmt.Printf("...done\n") }
+
+  //---
+
+  if local_debug { fmt.Printf("initializing span...\n") }
+
+  e = glfd.InitSpan(span_fn)
+
+  if local_debug { fmt.Printf("...done\n") }
+
+
+  //if local_debug { fmt.Printf("initalizing cache...\n") }
+
+  //e = glfd.InitCache()
+  //if e!=nil { return nil, e }
+
+  //if local_debug { fmt.Printf("...done\n") }
 
   return &glfd,nil
 }

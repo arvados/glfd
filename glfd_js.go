@@ -23,6 +23,93 @@ func info_otto(call otto.FunctionCall) otto.Value {
   return v
 }
 
+/*
+func (glfd *GLFD) refinfo_otto(call otto.FunctionCall) otto.Value {
+  otto_err,err := otto.ToValue("error")
+  if err!=nil { return otto.Value{} }
+
+  assembly_name,e := call.Argument(0).String()
+  if e!=nil { return otto_err }
+  assembly_pdh,e := call.Argument(1).String() ; _ = assembly_pdh
+  if e!=nil { return otto_err }
+  chrom,e := call.Argument(2).String()
+  if e!=nil { return otto_err }
+  beg_pos,e := call.Argument(3).ToInteger()
+  if e!=nil { return otto_err }
+  end_pos,e := call.Argument(4).ToInteger()
+  if e!=nil { return otto_err }
+
+  tilepath,tilestep,e := glfd.RefPosLookupTile(assembly_name, chrom, int(beg_pos), int(end_pos))
+  if e!=nil { return otto_err }
+
+  ref_varid := glfd.RefV[assembly_name][tilepath][tilestep]
+
+  seq,e := glfd.TileSequence(tilepath, 0, tilestep, ref_varid)
+  if e!=nil { return otto_err }
+
+  //ret_s := fmt.Sprintf(`{"tile-id":"%04x.%02.%04x.%03x","seq":"%s","subseq":"%s"
+}
+*/
+
+func (glfd *GLFD) tilespan_otto(call otto.FunctionCall) otto.Value {
+  otto_err,err := otto.ToValue("error")
+  if err!=nil { return otto.Value{} }
+
+  tilepath,e := call.Argument(0).ToInteger()
+  if e!=nil { return otto_err }
+  libver,e := call.Argument(1).ToInteger()
+  if e!=nil { return otto_err }
+  tilestep,e := call.Argument(2).ToInteger()
+  if e!=nil { return otto_err }
+  tilevar,e := call.Argument(3).ToInteger()
+  if e!=nil { return otto_err }
+
+  span,e := glfd.TileSpan(int(tilepath), int(libver), int(tilestep), int(tilevar))
+  if e!=nil { return otto_err }
+
+  v,e := otto.ToValue(span)
+  if e!=nil { return otto_err }
+
+  return v
+}
+
+func (glfd *GLFD) tagend_seq_otto(call otto.FunctionCall) otto.Value {
+
+  otto_err,err := otto.ToValue("error")
+  if err!=nil { return otto.Value{} }
+
+  tilepath,e := call.Argument(0).ToInteger()
+  if e!=nil { return otto_err }
+  libver,e := call.Argument(1).ToInteger()
+  if e!=nil { return otto_err }
+  tilestep,e := call.Argument(2).ToInteger()
+  if e!=nil { return otto_err }
+
+
+  tagseq,e := glfd.TagEnd(int(tilepath), int(libver), int(tilestep))
+  if e!=nil { return otto_err }
+
+  v,e := otto.ToValue(tagseq)
+  if e!=nil { return otto_err }
+
+  return v
+}
+
+func (glfd *GLFD) tilepos_info_otto(call otto.FunctionCall) otto.Value {
+  tilepath,e := call.Argument(0).ToInteger()
+  if e!=nil { return otto.Value{} }
+  libver,e := call.Argument(1).ToInteger()
+  if e!=nil { return otto.Value{} }
+  tilestep,e := call.Argument(2).ToInteger()
+  if e!=nil { return otto.Value{} }
+
+  s,e := glfd.TileLibSequences(int(tilepath), int(libver), int(tilestep))
+  if e!=nil { return otto.Value{} }
+
+  v,e := otto.ToValue(s)
+  return v
+}
+
 func (glfd *GLFD) tilesequence_otto(call otto.FunctionCall) otto.Value {
   tilepath,e := call.Argument(0).ToInteger()
   if e!=nil { return otto.Value{} }
@@ -85,6 +172,57 @@ func emitgvcf_otto(call otto.FunctionCall) otto.Value {
 
 //func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value { }
 
+func (glfd *GLFD) assembly_end_pos_otto(call otto.FunctionCall) otto.Value {
+  assembly_name := call.Argument(0).String()
+  assembly_pdh := call.Argument(1).String() ; _= assembly_pdh
+
+  otto_err,e := otto.ToValue("error")
+  if e!=nil { return otto.Value{} }
+
+
+  tilepath,e := call.Argument(2).ToInteger()
+  if e!=nil { return otto_err }
+
+  tilever,e := call.Argument(3).ToInteger() ; _ = tilever
+  if e!=nil { return otto_err }
+
+  tilestep,e := call.Argument(4).ToInteger()
+  if e!=nil { return otto_err }
+
+  if _,ok := glfd.Assembly[(assembly_name)] ; ok {
+    if _,okp := glfd.Assembly[(assembly_name)][int(tilepath)] ; okp {
+      if end_ref,oks := glfd.Assembly[(assembly_name)][int(tilepath)][int(tilestep)] ; oks {
+        //end_ref := glfd.Assembly[(assembly_name)][int(tilepath)][int(tilestep)]
+        v,e := otto.ToValue(end_ref)
+        if e!=nil { return otto_err }
+        return v
+      }
+    }
+  }
+
+  return otto_err
+}
+
+func (glfd *GLFD) assembly_chrom_otto(call otto.FunctionCall) otto.Value {
+  otto_err,e := otto.ToValue("error")
+  if e!=nil { return otto.Value{} }
+
+  assembly_name := call.Argument(0).String() ; _ = assembly_name
+  assembly_pdh := call.Argument(1).String() ; _ = assembly_pdh
+
+  tilepath,e := call.Argument(2).ToInteger()
+  if e!=nil { return otto_err }
+
+  if chromstr,ok := glfd.TilepathToChrom[int(tilepath)] ; ok {
+    v,e := otto.ToValue(chromstr)
+    if e!=nil { return otto_err }
+    return v
+  }
+
+  return otto_err
+}
+
+
 func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
 
   //fmt.Printf("tiletogvcf...\n")
@@ -92,7 +230,12 @@ func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
   str := call.Argument(0).String()
 
   jso,e := sloppyjson.Loads(str)
-  if e!=nil {  panic(e) }
+  //if e!=nil {  panic(e) }
+  if e!=nil {
+    v,e := otto.ToValue("input parse error")
+    if e!=nil { return otto.Value{} }
+    return v
+  }
 
   tilepath := int(jso.O["tilepath"].P)
   start_tilestep := int(jso.O["start_tilestep"].P)
@@ -139,7 +282,12 @@ func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
   outs := bufio.NewWriter(bb)
 
   s,e := glfd.TileToGVCF(outs, tilepath, 0, start_tilestep, allele, nocall, ref_varid) ; _ = s
-  if e!=nil { panic(e) }
+  if e!=nil {
+    //panic(e)
+    v,err := otto.ToValue( fmt.Sprintf("%v", e) )
+    if err!=nil { return otto.Value{} }
+    return v
+  }
 
   json_gvcf_str := _to_json_gvcf(string(bb.Bytes()), "unk")
 
@@ -215,7 +363,18 @@ func (glfd *GLFD) JSVMRun(src string) (rstr string, e error) {
   js_vm.Set("align", align_otto)
   js_vm.Set("emitgvcf", emitgvcf_otto)
   //js_vm.Set("tiletogvcf", glfd.tiletogvcf_otto)
+
+  js_vm.Set("tiletogvcf", glfd.tiletogvcf_x_otto)
   js_vm.Set("tiletogvcf_x", glfd.tiletogvcf_x_otto)
+
+  js_vm.Set("glfd_assembly_end_pos", glfd.assembly_end_pos_otto)
+  js_vm.Set("glfd_assembly_chrom", glfd.assembly_chrom_otto)
+
+  js_vm.Set("glfd_tilepos_info", glfd.tilepos_info_otto)
+
+  js_vm.Set("glfd_tagend_seq", glfd.tagend_seq_otto)
+
+  js_vm.Set("glfd_tilespan", glfd.tilespan_otto)
 
   v,err := js_vm.Run(src)
   if err!=nil {

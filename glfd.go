@@ -8,6 +8,8 @@ import "strings"
 import "strconv"
 import "io/ioutil"
 
+import "crypto/md5"
+
 import "time"
 
 import "github.com/aebruno/twobit"
@@ -30,12 +32,114 @@ type GLFD struct {
 
   RefV map[string]map[int][]int
 
+  Tagset map[int]string
+
+  // holds only non 1 span tile information
+  //
+  TileLibSpan map[int]map[int]map[int]int
+
   // Location of library files
   //
   GLFDir string
 }
 
-func (glfd *GLFD)  TileSequence(tilepath int, tilelibver int, tilestep int, tilevar int) (string, error) {
+func Md5sum2str(md5sum [16]byte) string {
+  var str_md5sum [32]byte
+  for i:=0; i<16; i++ {
+    x := fmt.Sprintf("%02x", md5sum[i])
+    str_md5sum[2*i]   = x[0]
+    str_md5sum[2*i+1] = x[1]
+  }
+
+  return string(str_md5sum[:])
+}
+
+func (glfd *GLFD) TagEnd(tilepath int, tilelibver int, tilestep int) (string, error) {
+  _ = tilelibver
+
+  if _,ok := glfd.Tagset[tilepath] ; ok {
+    pos := tilestep * 24
+    if (pos<0) || ((pos+24)>len(glfd.Tagset[tilepath])) {
+      return "", fmt.Errorf("tag out of range")
+    }
+
+    return glfd.Tagset[tilepath][pos:pos+24], nil
+  }
+
+  return "", fmt.Errorf("tilepath not found")
+}
+
+func (glfd *GLFD) TileSpan(tilepath, tilelibver, tilestep, tilevar int) (int, error) {
+  _ = tilelibver
+
+  if _,ok := glfd.TileLibSpan[tilepath] ; ok {
+    if _,oks := glfd.TileLibSpan[tilepath][tilestep] ; oks  {
+      if _,okv := glfd.TileLibSpan[tilepath][tilestep][tilevar] ; okv {
+        return glfd.TileLibSpan[tilepath][tilestep][tilevar],nil
+      }
+    }
+  }
+
+  return 1,nil
+}
+
+
+func (glfd *GLFD) TileLibSequences(tilepath int, tilelibver int, tilestep int) (string, error) {
+  base_dir := glfd.GLFDir
+
+  step_ifn := fmt.Sprintf("%04x.%02x.%04x.2bit", tilepath, tilelibver, tilestep) ; _ = step_ifn
+  gz_ifn := fmt.Sprintf("%s/%04x.tar.gz", base_dir, tilepath) ; _ = gz_ifn
+  taridx_ifn := fmt.Sprintf("%s/%04x.tar.tai", base_dir, tilepath) ; _ = taridx_ifn
+
+  idx_fp,err := os.Open(taridx_ifn)
+  if err!=nil { return "", err }
+  defer idx_fp.Close()
+
+  vbyte_beg := -1
+  vbyte_len := -1
+
+  scanner := bufio.NewScanner(idx_fp)
+  for scanner.Scan() {
+    line := scanner.Text()
+    line_parts := strings.Split(line, " ")
+    if line_parts[0] != step_ifn { continue }
+
+    vbyte_beg,_ = strconv.Atoi(line_parts[1])
+    vbyte_len,_ = strconv.Atoi(line_parts[2])
+  }
+
+  bgz,e := BGZFOpen(gz_ifn, "r")
+  if e!=nil { return "", e }
+  _ = bgz.IndexLoad(gz_ifn, ".gzi")
+  defer bgz.Close()
+
+  b := make([]byte, vbyte_len)
+  bgz.USeek(vbyte_beg)
+  bgz.Read(b)
+
+  b_rdr := bytes.NewReader(b)
+  tb_rdr,e := twobit.NewReader(b_rdr)
+  if e!=nil { return "", e }
+
+  ret_a := []string{}
+
+  names := tb_rdr.Names()
+  for idx:=0; idx<len(names); idx++ {
+
+    seq,e := tb_rdr.Read(names[idx])
+    if e!=nil {return "", e}
+
+    m5str := Md5sum2str( md5.Sum(seq) )
+
+    s := fmt.Sprintf(`{"tile-id":"%s","md5sum":"%s","seq":"%s"}`,
+      names[idx], m5str, seq)
+    ret_a = append(ret_a, s)
+  }
+
+  return "[" + strings.Join(ret_a, ",") + "]", nil
+}
+
+func (glfd *GLFD) TileSequence(tilepath int, tilelibver int, tilestep int, tilevar int) (string, error) {
 
   if _,okp := glfd.SeqCache[tilepath] ; okp {
     if _,oks := glfd.SeqCache[tilepath][tilestep] ; oks {
@@ -450,16 +554,19 @@ func main() {
 
   t := time.Now()
   fmt.Print(t.Format(time.RFC3339))
+  fmt.Printf("\n")
 
-
-  //glfd,e := GLFDInit("/mnt/tmpfs/glf", "/mnt/tmpfs/assembly/assembly.00.hg19.fw.gz")
-  glfd,e := GLFDInit("/scratch/l7g/glf/glf.2bit.path", "/scratch/l7g/assembly/assembly.00.hg19.fw.gz")
+  glfd,e := GLFDInit("/scratch/l7g/glf/glf.2bit.path",
+    "/scratch/l7g/assembly/assembly.00.hg19.fw.gz",
+    "/scratch/l7g/tagset.2bit/tagset.2bit",
+    "/scratch/l7g/glf/span/span.gz")
   if e!=nil { panic(e) }
 
   fmt.Printf(">>> done\n")
 
   t = time.Now()
   fmt.Print(t.Format(time.RFC3339))
+  fmt.Printf("\n")
 
 
   /*
@@ -555,18 +662,19 @@ func main() {
 
   EmitGVCF(outs, "unk", 0, r, x, y)
 
-  v,e := glfd.JSVMRun(` function f() { return 333; } ; var obj = { "x" : "y", "z" : 3 }; var abc = 2+2; console.log("...", abc); abc; f(); muduk_return(obj); `)
+  v,e := glfd.JSVMRun(` function f() { return 333; } ; var obj = { "x" : "y", "z" : 3 }; var abc = 2+2; console.log("...", abc); abc; f(); glfd_return(obj); `)
   if e!=nil { panic(e) }
 
   fmt.Printf("\n>>> %v\n", v)
 
   t = time.Now()
   fmt.Print(t.Format(time.RFC3339))
+  fmt.Printf("\n")
 
 
-  //sampq,e := ioutil.ReadFile("js/sample-query.js")
+  sampq,e := ioutil.ReadFile("js/sample-query.js")
   //sampq,e := ioutil.ReadFile("js/p2fb.js")
-  sampq,e := ioutil.ReadFile("js/p2fb_x.js")
+  //sampq,e := ioutil.ReadFile("js/p2fb_x.js")
   if e!=nil { panic(e) }
 
 
@@ -578,5 +686,6 @@ func main() {
 
   t = time.Now()
   fmt.Print(t.Format(time.RFC3339))
+  fmt.Printf("\n")
 
 }

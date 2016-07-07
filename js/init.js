@@ -2,8 +2,6 @@ print = ((typeof(print)==="undefined") ? console.log : print);
 
 var cgf_info = {};
 
-var tmp = 3;
-
 function setup_cgf_info() {
   cgf_info.cgf = [];
   cgf_info.cgf.push({ "file":"../data/hu826751-GS03052-DNA_B01.cgf", "name":"hu826751-GS03052-DNA_B01", "id":0 });
@@ -14,6 +12,7 @@ function setup_cgf_info() {
     cgf_info.id[ cgf_info.cgf[idx].name ] = idx;
   }
 
+  cgf_info["TagSetVersion"] = "xx";
   cgf_info["CGFVersion"] = "0.1.0";
   cgf_info["CGFLibVersion"] = "0.1.0";
   cgf_info["PathCount"] = 863;
@@ -101,7 +100,11 @@ function query(q) {
   return JSON.stringify(robj);
 }
 
-function muduk_return(q) {
+// Take the input and Stringify is if it's a JSON object.
+// If it's a string or number, return it.
+// Otherwise return an empty string.
+//
+function glfd_return(q) {
   if (typeof(q)==="undefined") { return ""; }
   if (typeof(q)==="object") {
     var s = "";
@@ -116,3 +119,208 @@ function muduk_return(q) {
   return "";
 }
 
+function hexstr(x, sz) {
+  sz = ((typeof sz==="undefined")?0:sz);
+  var t = x.toString(16);
+  if (t.length < sz) {
+    t = Array(sz - t.length + 1).join("0") + t;
+  }
+  return t;
+}
+
+function api_tile_variants(tilepos_str) {
+  var tilepos_parts = tilepos_str.split(".");
+  var tilever = parseInt(tilepos_parts[0], 16);
+  var tilepath = parseInt(tilepos_parts[1], 16);
+  var tilestep = parseInt(tilepos_parts[2], 16);
+
+  var ret_a = [];
+
+  var r = glfd_tilepos_info(tilepath, tilever, tilestep);
+  var jj = JSON.parse(r);
+  for (var idx=0; idx<jj.length; idx++) {
+    var tileid_parts = jj[idx]["tile-id"].split(".");
+    var m5 = jj[idx]["md5sum"];
+
+    var varid = parseInt(tileid_parts[3], 16);
+
+    ret_a.push({
+      "tile-id":tileid_parts[1] + "." + tileid_parts[0] + "." + tileid_parts[2] + "." + m5,
+      "md5sum":m5,
+      "variant-id":varid
+    });
+  }
+
+  return glfd_return(ret_a);
+}
+
+function api_tagseq_end(tilepos_str) {
+  var tilepos_parts = tilepos_str.split(".");
+  var tilever = parseInt(tilepos_parts[0], 16);
+  var tilepath = parseInt(tilepos_parts[1], 16);
+  var tilestep = parseInt(tilepos_parts[2], 16);
+
+  var seq = glfd_tagseq_end(tilepath, tilever, tilestep);
+
+  return glfd_return(seq);
+}
+
+function api_tile_variant_info(tile_md5_var_str) {
+  var tilepos_parts = tilepos_str.split(".");
+  var tilever = parseInt(tilepos_parts[0], 16);
+  var tilepath = parseInt(tilepos_parts[1], 16);
+  var tilestep = parseInt(tilepos_parts[2], 16);
+  var md5var_str = tilepos_parts[3];
+
+
+  var x = api_locus_req("hg19", "xx", hexstr(tilever, 2) + "." + hexstr(tilepath, 4) + "." + hexstr(tilestep, 4));
+  var jj = JSON.parse(x);
+
+  var is_start_tile = false;
+  var is_end_tile = false;
+  if (tilestep == 0) { is_start_tile = true; }
+  if (tilestep == (cgf_info.StepPerPath[tilepath]-1)) { is_end_tile = true; }
+
+  var y = api_tile_variants(hexstr(tilever, 2) + "." + hexstr(tilepath, 4) + "." + hexstr(tilestep, 4));
+  var yy = JSON.parse(y);
+
+  var ret_obj = {};
+  ret_obj["tile-variant"] = tile_md5_var_str;
+  ret_obj["tag-length"] = 24;
+  ret_obj["start-tag"] = "";
+  ret_obj["end-tag"] = "";
+  ret_obj["is-start-of-path"] = is_start_tile;
+  ret_obj["is-end-of-path"] = is_end_tile;
+  ret_obj["sequence"] = "";
+  ret_obj["md5sum"] = md5var_str;
+  ret_obj["length"] = -1;
+  ret_obj["number-of-positions-spanned"] = -1;
+
+  for (var idx=0; idx<yy.length; idx++) {
+    if (yy[idx].md5sum == md5var_str) {
+
+      var tileid = yy[idx]["tile-id"].split(".");
+      var varid = yy[idx]["variant-id"];
+
+      var seq = yy[idx].seq;
+      if (!is_start_tile) {
+        ret_obj["start-tag"] = seq.slice(0,24);
+      }
+      if (!is_end_tile) {
+        ret_obj["end-tag"] = seq.slice(seq.length-24, seq.length);
+      }
+      ret_obj["sequence"] = seq;
+      ret_obj["length"] = seq.length;
+
+      var span = glfd_tilespan(tilepath, tilever, tilestep, varid);
+      ret_obj["number-of-positions-spanned"] = span;
+    }
+  }
+
+  return glfd_return(ret_obj);
+}
+
+function api_locus_req(assembly_name, assembly_pdh, tilepos_str) {
+  var r = [];
+
+  var tilepos_parts = tilepos_str.split(".");
+  var tilever = parseInt(tilepos_parts[0], 16);
+  var tilepath = parseInt(tilepos_parts[1], 16);
+  var tilestep = parseInt(tilepos_parts[2], 16);
+
+  var end_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep);
+  var beg_pos = 0;
+  if (tilstep>0) {
+    beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep-1);
+  }
+  else if (tilepath>0) {
+    var end_step = cgf_info.StepPerPath[tilepath-1]-1;
+    beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath-1, tilever, end_step);
+  }
+
+  var chrom = glfd_assembly_chrom(assembly_name, assembly_pdh, tilepath);
+
+  r.push({
+    "assembly-name":assembly_name,
+    "assembly-pdh":assembly_pdh,
+    "chromosome-name":chrom.toString(),
+    "start-position":beg_pos,
+    "end-position":end_pos,
+    "indexing":0
+  });
+
+  return glfd_return(r);
+}
+
+// This all needs to be fixed to take in whatever
+// the `rest_req` variable has stored.
+//
+function api_query(rest_req) {
+  var parts = rest_req.split("/");
+  var n = parts.length;
+  var f = parts[n-1];
+
+  if (f=="status") {
+    return glfd_return({"api-version":cgf_info.GGFLibVersion});
+  }
+
+  else if (f=="tag-sets") {
+    return glfd_return([ cgf_info.TagSetVersion ]);
+  }
+
+  else if (f=="tag-set-identifier") {
+    return glfd_return({"tag-set-identifier": cgf_info.TagSetVersion, "tag-set-integer":0 });
+  }
+
+  else if (f=="paths") {
+    var n_path = cgf_info.StepPerPath.length;
+    var path_a = [];
+    for (var i=0; i<n_path; i++) {
+      path_a.append(i);
+    }
+    return glfd_return(path_a);
+  }
+
+  else if (f=="path-int") {
+    var tilepath = 0x247;
+    return glfd_return({"path":tilepath, "num-positions":cgf_info.StepPerPath[tilepath]});
+  }
+
+  else if (f=="tile-positions") {
+    var tilepath = 0x247;
+    var tilepos_a = [];
+    var libver = 0;
+    var m = cgf_info.StepPerPath[tilepath];
+    for (var i=0; i<m; i++) {
+      tilepos_a.push( hexstr(libver,2) + "." + hexstr(tilepath, 3) + "." + hexstr(i, 4) );
+    }
+    return glfd_return(tilepos_a);
+  }
+
+  // outside of glfd scope
+  //
+  else if (f=="tile-position-id") {
+    return "";
+  }
+
+  else if (f=="locus") {
+    var assembly_name = "hg19";
+    var assembly_pdh = "xxx";
+    var tilepos_str = "00.247.0000";
+
+    return api_locus_req(assembly_name, assembly_pdh, tilepos_str);
+  }
+
+  // unreasonable, not implementing as specified.
+  // only consider tile positions
+  //
+  else if (f=="tile-variants") {
+    var tilepos_str = "00.247.0000";
+    return api_tile_variants(tilepos_str);
+  }
+
+  else if (f=="tile-variant-id") {
+    return api_tile_variant_info(tile_md5_var_str);
+  }
+
+}

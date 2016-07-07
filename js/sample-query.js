@@ -50,4 +50,12 @@ for (var tilestep=start_step; tilestep<=end_step; tilestep++) {
 }
 
 print("\n\ntiletogvcf:\n");
-tiletogvcf({"tilepath":763, "allele": [[0,1,0],[0,0,0]], "loq_info":[[[],[],[]],[[],[],[]]], "start_tilestep":0});
+var q = {"tilepath":763, "allele": [[0,1,0],[0,0,0]], "loq_info":[[[],[],[]],[[],[],[]]], "start_tilestep":0};
+tiletogvcf(JSON.stringify(q));
+
+
+print("\ntesting span:\n");
+var s0 = glfd_tilespan(0x2fb, 0, 0x84, 0);
+var s1 = glfd_tilespan(0x2fb, 0, 0x84, 3);
+
+print("  got: " + s0.toString() + " " + s1.toString() + "\n");
