@@ -550,6 +550,12 @@ func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_ti
 //
 func main() {
 
+  tglfd := GLFD{}
+
+  tglfd.StartSrv()
+  os.Exit(0)
+
+
   fmt.Printf(">>> loading...\n")
 
   t := time.Now()
@@ -687,5 +693,7 @@ func main() {
   t = time.Now()
   fmt.Print(t.Format(time.RFC3339))
   fmt.Printf("\n")
+
+  glfd.StartSrv()
 
 }
