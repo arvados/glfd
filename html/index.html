@@ -275,13 +275,23 @@ function sendreq_emitgvcf() {
   sendreq();
 }
 
-function sendreq_tiletogvcf() {
+function sendreq_tiletogvcf( json_output ) {
+  json_output = ((typeof json_output === "undefined") ? true : json_output );
   var txt = [
     'var q = {"tilepath":763, "allele": [[0,1,0],[0,0,0]], "loq_info":[[[],[],[]],[[],[],[]]], "start_tilestep":0};',
     'var r = tiletogvcf(JSON.stringify(q));',
     'var r_json = JSON.parse(r);',
     'glfd_return(r_json, "  ");'
   ].join("\n");
+
+  if (!json_output) {
+    txt[1] = 'var r = tiletogvcf(JSON.stringify(q, false));';
+    var txt = [
+      'var q = {"tilepath":763, "allele": [[0,1,0],[0,0,0]], "loq_info":[[[],[],[]],[[],[],[]]], "start_tilestep":0};',
+      'var r = tiletogvcf(JSON.stringify(q), false);',
+      'r;'
+    ].join("\n");
+  }
 
   var v = document.getElementById("text").value = txt;
   sendreq();
@@ -421,6 +431,8 @@ function historic_req_inc() {
       <a href='#' onclick='sendreq_align();' >example-align</a>
       <br>
       <a href='#' onclick='sendreq_tiletogvcf();' >example-tiletogvcf</a>
+      <br>
+      <a href='#' onclick='sendreq_tiletogvcf(false);' >example-tiletogvcf-text</a>
       <br>
       <a href='#' onclick='sendreq_tiletag();' >example-tiletag</a>
       <br>

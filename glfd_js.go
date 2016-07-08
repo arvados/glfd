@@ -153,27 +153,22 @@ func align_otto(call otto.FunctionCall) otto.Value {
   return v
 }
 
-
 /*
 func emitgvcf_otto(call otto.FunctionCall) otto.Value {
   refseq := call.Argument(0).String()
   alt0seq := call.Argument(1).String()
   alt1seq := call.Argument(2).String()
 
-  //DEBUG
-  outs := bufio.NewWriter(os.Stdout)
+  obuf := bytes.NewBuffer([]byte{})
+  outs := bufio.NewWriter(obuf)
 
-  //EmitGVCF(refseq, alt0seq, alt1seq)
   EmitGVCF(outs, "unk", 0, refseq, alt0seq, alt1seq)
 
-  //v,e := otto.ToValue("ok")
   v,e := otto.ToValue(outs.Bytes)
   if e!=nil { return otto.Value{} }
   return v
 }
 */
-
-//func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value { }
 
 func (glfd *GLFD) assembly_end_pos_otto(call otto.FunctionCall) otto.Value {
   assembly_name := call.Argument(0).String()
@@ -226,7 +221,7 @@ func (glfd *GLFD) assembly_chrom_otto(call otto.FunctionCall) otto.Value {
 }
 
 
-func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
+func (glfd *GLFD) tiletogvcf_otto(call otto.FunctionCall) otto.Value {
   otto_err,e := otto.ToValue("error")
   if e!=nil { return otto.Value{} }
 
@@ -243,7 +238,6 @@ func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
 
 
   jso,e := sloppyjson.Loads(str)
-  //if e!=nil {  panic(e) }
   if e!=nil {
     v,e := otto.ToValue("input parse error")
     if e!=nil { return otto.Value{} }
@@ -378,10 +372,8 @@ func (glfd *GLFD) JSVMRun(src string) (rstr string, e error) {
   js_vm.Set("aligntopasta", align2pasta_otto)
   js_vm.Set("align", align_otto)
   //js_vm.Set("emitgvcf", emitgvcf_otto)
-  //js_vm.Set("tiletogvcf", glfd.tiletogvcf_otto)
 
-  js_vm.Set("tiletogvcf", glfd.tiletogvcf_x_otto)
-  js_vm.Set("tiletogvcf_x", glfd.tiletogvcf_x_otto)
+  js_vm.Set("tiletogvcf", glfd.tiletogvcf_otto)
 
   js_vm.Set("glfd_assembly_end_pos", glfd.assembly_end_pos_otto)
   js_vm.Set("glfd_assembly_chrom", glfd.assembly_chrom_otto)

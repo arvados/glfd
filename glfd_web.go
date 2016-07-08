@@ -68,7 +68,7 @@ func (glfd *GLFD) WebExec(w http.ResponseWriter, req *http.Request) {
   rstr,e := glfd.JSVMRun(string(body))
   if e!=nil {
     rerr := strconv.Quote(fmt.Sprintf("%v", e))
-    io.WriteString(w, `{"value":"error","error":"` + rerr + `"}`)
+    io.WriteString(w, `{"value":"error","error":` + rerr + `}`)
     return
   }
 

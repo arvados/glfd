@@ -579,7 +579,6 @@ func main() {
   glfd,e := GLFDInit("/scratch/l7g/glf/glf.2bit.path",
     "/scratch/l7g/assembly/assembly.00.hg19.fw.gz",
     "/scratch/l7g/tagset.2bit/tagset.2bit",
-    //"/scratch/l7g/glf/span/span.bin.gz")
     "/scratch/l7g/glf/span/span.gz")
   if e!=nil { panic(e) }
 
