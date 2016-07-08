@@ -4,7 +4,7 @@ package main
 
 /*
 #cgo CFLAGS: -I.
-#cgo LDFLAGS: -lm -L. ./asm_ukk.a ./libasmdna.a
+#cgo LDFLAGS: -lm -L. ./asm_ukk.a
 #include "asm_ukk.h"
 */
 import "C"
