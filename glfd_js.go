@@ -1,6 +1,6 @@
 package main
 
-import "os"
+//import "os"
 import "fmt"
 import "bytes"
 import "bufio"
@@ -17,8 +17,8 @@ import "github.com/abeconnelly/sloppyjson"
 
 //import "reflect"
 
-func info_otto(call otto.FunctionCall) otto.Value {
-  v,e := otto.ToValue("ok info")
+func status_otto(call otto.FunctionCall) otto.Value {
+  v,e := otto.ToValue("ok status")
   if e!=nil { return otto.Value{} }
   return v
 }
@@ -154,6 +154,7 @@ func align_otto(call otto.FunctionCall) otto.Value {
 }
 
 
+/*
 func emitgvcf_otto(call otto.FunctionCall) otto.Value {
   refseq := call.Argument(0).String()
   alt0seq := call.Argument(1).String()
@@ -165,10 +166,12 @@ func emitgvcf_otto(call otto.FunctionCall) otto.Value {
   //EmitGVCF(refseq, alt0seq, alt1seq)
   EmitGVCF(outs, "unk", 0, refseq, alt0seq, alt1seq)
 
-  v,e := otto.ToValue("ok")
+  //v,e := otto.ToValue("ok")
+  v,e := otto.ToValue(outs.Bytes)
   if e!=nil { return otto.Value{} }
   return v
 }
+*/
 
 //func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value { }
 
@@ -224,10 +227,20 @@ func (glfd *GLFD) assembly_chrom_otto(call otto.FunctionCall) otto.Value {
 
 
 func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
-
-  //fmt.Printf("tiletogvcf...\n")
+  otto_err,e := otto.ToValue("error")
+  if e!=nil { return otto.Value{} }
 
   str := call.Argument(0).String()
+  sec_arg := call.Argument(1)
+
+  json_out := true
+  if (sec_arg.IsDefined()) {
+    var e error
+    json_out,e = sec_arg.ToBoolean()
+    if e!=nil { return otto_err }
+  }
+
+
 
   jso,e := sloppyjson.Loads(str)
   //if e!=nil {  panic(e) }
@@ -289,9 +302,12 @@ func (glfd *GLFD) tiletogvcf_x_otto(call otto.FunctionCall) otto.Value {
     return v
   }
 
-  json_gvcf_str := _to_json_gvcf(string(bb.Bytes()), "unk")
+  out_str := string(bb.Bytes())
+  if json_out { out_str = _to_json_gvcf(string(bb.Bytes()), "unk") }
+  v,e := otto.ToValue(out_str)
 
-  v,e := otto.ToValue(json_gvcf_str)
+  //json_gvcf_str := _to_json_gvcf(string(bb.Bytes()), "unk")
+  //v,e := otto.ToValue(json_gvcf_str)
   if e!=nil { return otto.Value{} }
   return v
 }
@@ -357,11 +373,11 @@ func (glfd *GLFD) JSVMRun(src string) (rstr string, e error) {
   if err!=nil { e = err; return }
   js_vm.Run(init_js)
 
-  js_vm.Set("info", info_otto)
+  js_vm.Set("status", status_otto)
   js_vm.Set("tilesequence", glfd.tilesequence_otto)
   js_vm.Set("aligntopasta", align2pasta_otto)
   js_vm.Set("align", align_otto)
-  js_vm.Set("emitgvcf", emitgvcf_otto)
+  //js_vm.Set("emitgvcf", emitgvcf_otto)
   //js_vm.Set("tiletogvcf", glfd.tiletogvcf_otto)
 
   js_vm.Set("tiletogvcf", glfd.tiletogvcf_x_otto)

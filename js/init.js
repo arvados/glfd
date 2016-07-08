@@ -1,22 +1,22 @@
 print = ((typeof(print)==="undefined") ? console.log : print);
 
-var cgf_info = {};
+var glf_info = {};
 
-function setup_cgf_info() {
-  cgf_info.cgf = [];
-  cgf_info.cgf.push({ "file":"../data/hu826751-GS03052-DNA_B01.cgf", "name":"hu826751-GS03052-DNA_B01", "id":0 });
-  cgf_info.cgf.push({ "file":"../data/hu0211D6-GS01175-DNA_E02.cgf", "name":"hu0211D6-GS01175-DNA_E02", "id":1 });
+function setup_glf_info() {
+  //glf_info.cgf = [];
+  //glf_info.cgf.push({ "file":"../data/hu826751-GS03052-DNA_B01.cgf", "name":"hu826751-GS03052-DNA_B01", "id":0 });
+  //glf_info.cgf.push({ "file":"../data/hu0211D6-GS01175-DNA_E02.cgf", "name":"hu0211D6-GS01175-DNA_E02", "id":1 });
 
-  cgf_info.id = {};
-  for (var idx=0; idx<cgf_info.cgf.length; idx++) {
-    cgf_info.id[ cgf_info.cgf[idx].name ] = idx;
-  }
+  //glf_info.id = {};
+  //for (var idx=0; idx<glf_info.cgf.length; idx++) {
+  //  glf_info.id[ glf_info.cgf[idx].name ] = idx;
+  //}
 
-  cgf_info["TagSetVersion"] = "xx";
-  cgf_info["CGFVersion"] = "0.1.0";
-  cgf_info["CGFLibVersion"] = "0.1.0";
-  cgf_info["PathCount"] = 863;
-  cgf_info["StepPerPath"] = [
+  glf_info["TagSetVersion"] = "xx";
+  glf_info["CGFVersion"] = "0.1.0";
+  glf_info["CGFLibVersion"] = "0.1.0";
+  glf_info["PathCount"] = 863;
+  glf_info["StepPerPath"] = [
      5433, 11585, 7112, 7550, 13094, 10061, 15111, 13212, 14838, 7361, 8565, 8238, 21058, 15318, 9982, 14543,
     20484, 11704, 9056, 29572, 3032, 58941, 13626, 13753, 10082, 19756, 9669, 18011, 17221, 16418, 6572, 10450,
     653, 1, 1, 43, 4603, 4524, 17225, 5245, 9951, 5416, 18877, 6467, 14301, 7627, 11539, 16593,
@@ -73,9 +73,9 @@ function setup_cgf_info() {
     6040, 18525, 26363, 1, 1045, 12490, 1, 361, 4758, 14711, 4019, 5647, 721, 181, 35
   ];
 
-  return cgf_info;
+  return glf_info;
 }
-setup_cgf_info();
+setup_glf_info();
 
 function tile_concordance_slice(set_a, set_b, lvl) {
 }
@@ -104,12 +104,13 @@ function query(q) {
 // If it's a string or number, return it.
 // Otherwise return an empty string.
 //
-function glfd_return(q) {
+function glfd_return(q, indent) {
+  indent = ((typeof(indent)==="undefined") ? '' : indent);
   if (typeof(q)==="undefined") { return ""; }
   if (typeof(q)==="object") {
     var s = "";
     try {
-      s = JSON.stringify(q);
+      s = JSON.stringify(q, null, indent);
     } catch(err) {
     }
     return s;
@@ -127,6 +128,11 @@ function hexstr(x, sz) {
   }
   return t;
 }
+
+function info() {
+  return glfd_return(glf_info);
+}
+
 
 function api_tile_variants(tilepos_str) {
   var tilepos_parts = tilepos_str.split(".");
@@ -179,7 +185,7 @@ function api_tile_variant_info(tile_md5_var_str) {
   var is_start_tile = false;
   var is_end_tile = false;
   if (tilestep == 0) { is_start_tile = true; }
-  if (tilestep == (cgf_info.StepPerPath[tilepath]-1)) { is_end_tile = true; }
+  if (tilestep == (glf_info.StepPerPath[tilepath]-1)) { is_end_tile = true; }
 
   var y = api_tile_variants(hexstr(tilever, 2) + "." + hexstr(tilepath, 4) + "." + hexstr(tilestep, 4));
   var yy = JSON.parse(y);
@@ -234,7 +240,7 @@ function api_locus_req(assembly_name, assembly_pdh, tilepos_str) {
     beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep-1);
   }
   else if (tilepath>0) {
-    var end_step = cgf_info.StepPerPath[tilepath-1]-1;
+    var end_step = glf_info.StepPerPath[tilepath-1]-1;
     beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath-1, tilever, end_step);
   }
 
@@ -261,19 +267,19 @@ function api_query(rest_req) {
   var f = parts[n-1];
 
   if (f=="status") {
-    return glfd_return({"api-version":cgf_info.GGFLibVersion});
+    return glfd_return({"api-version":glf_info.GGFLibVersion});
   }
 
   else if (f=="tag-sets") {
-    return glfd_return([ cgf_info.TagSetVersion ]);
+    return glfd_return([ glf_info.TagSetVersion ]);
   }
 
   else if (f=="tag-set-identifier") {
-    return glfd_return({"tag-set-identifier": cgf_info.TagSetVersion, "tag-set-integer":0 });
+    return glfd_return({"tag-set-identifier": glf_info.TagSetVersion, "tag-set-integer":0 });
   }
 
   else if (f=="paths") {
-    var n_path = cgf_info.StepPerPath.length;
+    var n_path = glf_info.StepPerPath.length;
     var path_a = [];
     for (var i=0; i<n_path; i++) {
       path_a.append(i);
@@ -283,14 +289,14 @@ function api_query(rest_req) {
 
   else if (f=="path-int") {
     var tilepath = 0x247;
-    return glfd_return({"path":tilepath, "num-positions":cgf_info.StepPerPath[tilepath]});
+    return glfd_return({"path":tilepath, "num-positions":glf_info.StepPerPath[tilepath]});
   }
 
   else if (f=="tile-positions") {
     var tilepath = 0x247;
     var tilepos_a = [];
     var libver = 0;
-    var m = cgf_info.StepPerPath[tilepath];
+    var m = glf_info.StepPerPath[tilepath];
     for (var i=0; i<m; i++) {
       tilepos_a.push( hexstr(libver,2) + "." + hexstr(tilepath, 3) + "." + hexstr(i, 4) );
     }

@@ -12,6 +12,8 @@ import "github.com/aebruno/twobit"
 import "github.com/abeconnelly/sloppyjson"
 
 func (glfd *GLFD) InitSpan(span_fn string) error {
+  var key uint64
+  //var span uint16
 
   f,e := os.Open(span_fn)
   if e!=nil { return e }
@@ -21,7 +23,7 @@ func (glfd *GLFD) InitSpan(span_fn string) error {
   if e!=nil { return e }
   defer gr.Close()
 
-  glfd.TileLibSpan = make( map[int]map[int]map[int]int )
+  glfd.TileLibSpan = make( map[uint64]int )
 
   scanner := bufio.NewScanner(gr)
   for scanner.Scan() {
@@ -44,16 +46,13 @@ func (glfd *GLFD) InitSpan(span_fn string) error {
     v,e := strconv.ParseInt(tileid_parts[3], 16, 64)
     if e!=nil { return e}
 
-    if _,ok := glfd.TileLibSpan[int(p)] ; !ok {
-      glfd.TileLibSpan[int(p)] = make( map[int]map[int]int )
-    }
+    key = 0
+    key = key | (uint64(p) << (8*6))
+    key = key | (uint64(ver) << (8*4))
+    key = key | (uint64(s) << (8*2))
+    key = key | uint64(v)
 
-    if _,ok := glfd.TileLibSpan[int(p)][int(s)] ; !ok {
-      glfd.TileLibSpan[int(p)][int(s)] = make( map[int]int )
-    }
-
-    glfd.TileLibSpan[int(p)][int(s)][int(v)] = span
-
+    glfd.TileLibSpan[key] = span
   }
 
   return nil
@@ -180,10 +179,12 @@ func (glfd *GLFD) InitAssembly(assembly_fn string) error {
     glfd.Assembly[assembly][tilepath][tilestep] = end_refpos
   }
 
+  /*
   // simple spot check
   fmt.Printf(">>>> %s %x %x (%s)-> %d\n", "hg19", 0x2fb, 0x102,
     glfd.TilepathToChrom[0x2fb],
     glfd.Assembly["hg19"][0x2fb][0x102])
+    */
 
   return nil
 }
@@ -233,37 +234,37 @@ func GLFDInit(glfd_dir, assembly_fn, tagset_fn, span_fn string) (*GLFD,error) {
 
   //---
 
-  if local_debug { fmt.Printf("initializing hg19.json...\n") }
+  if local_debug { fmt.Printf("initializing hg19.json: ") }
 
   e := glfd.InitHg19("js/hg19.json")
   if e!=nil { return nil, e }
 
-  if local_debug { fmt.Printf("...done\n") }
+  if local_debug { fmt.Printf("done\n") }
 
   //---
 
-  if local_debug { fmt.Printf("initializing assembly...\n") }
+  if local_debug { fmt.Printf("initializing assembly: ") }
 
   e = glfd.InitAssembly(assembly_fn)
   if e!=nil { return nil, e }
 
-  if local_debug { fmt.Printf("... done\n") }
+  if local_debug { fmt.Printf("done\n") }
 
   //---
 
-  if local_debug { fmt.Printf("initializing tagset...\n") }
+  if local_debug { fmt.Printf("initializing tagset: ") }
 
   e = glfd.InitTagset(tagset_fn)
 
-  if local_debug { fmt.Printf("...done\n") }
+  if local_debug { fmt.Printf("done\n") }
 
   //---
 
-  if local_debug { fmt.Printf("initializing span...\n") }
+  if local_debug { fmt.Printf("initializing span: ") }
 
   e = glfd.InitSpan(span_fn)
 
-  if local_debug { fmt.Printf("...done\n") }
+  if local_debug { fmt.Printf("done\n") }
 
 
   //if local_debug { fmt.Printf("initalizing cache...\n") }

@@ -36,7 +36,8 @@ type GLFD struct {
 
   // holds only non 1 span tile information
   //
-  TileLibSpan map[int]map[int]map[int]int
+  //TileLibSpan map[int]map[int]map[int]int
+  TileLibSpan map[uint64]int
 
   // Location of library files
   //
@@ -70,8 +71,9 @@ func (glfd *GLFD) TagEnd(tilepath int, tilelibver int, tilestep int) (string, er
 }
 
 func (glfd *GLFD) TileSpan(tilepath, tilelibver, tilestep, tilevar int) (int, error) {
-  _ = tilelibver
 
+  /*
+  _ = tilelibver
   if _,ok := glfd.TileLibSpan[tilepath] ; ok {
     if _,oks := glfd.TileLibSpan[tilepath][tilestep] ; oks  {
       if _,okv := glfd.TileLibSpan[tilepath][tilestep][tilevar] ; okv {
@@ -79,7 +81,16 @@ func (glfd *GLFD) TileSpan(tilepath, tilelibver, tilestep, tilevar int) (int, er
       }
     }
   }
+  */
 
+  var key uint64
+
+  key = key | (uint64(tilepath) << (8*6))
+  key = key | (uint64(tilelibver) << (8*4))
+  key = key | (uint64(tilestep) << (8*2))
+  key = key | uint64(tilevar)
+
+  if span,ok := glfd.TileLibSpan[key] ; ok { return span, nil }
   return 1,nil
 }
 
@@ -549,116 +560,42 @@ func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_ti
 // TESTING
 //
 func main() {
-
-  tglfd := GLFD{}
-
-  tglfd.StartSrv()
-  os.Exit(0)
+  local_debug := true
 
 
-  fmt.Printf(">>> loading...\n")
+  //tglfd := GLFD{}
+  //tglfd.StartSrv()
+  //os.Exit(0)
 
-  t := time.Now()
-  fmt.Print(t.Format(time.RFC3339))
-  fmt.Printf("\n")
+
+
+  if local_debug {
+    fmt.Printf(">>> loading...\n")
+    t := time.Now()
+    fmt.Print(t.Format(time.RFC3339))
+    fmt.Printf("\n")
+  }
 
   glfd,e := GLFDInit("/scratch/l7g/glf/glf.2bit.path",
     "/scratch/l7g/assembly/assembly.00.hg19.fw.gz",
     "/scratch/l7g/tagset.2bit/tagset.2bit",
+    //"/scratch/l7g/glf/span/span.bin.gz")
     "/scratch/l7g/glf/span/span.gz")
   if e!=nil { panic(e) }
 
-  fmt.Printf(">>> done\n")
+  if local_debug {
+    fmt.Printf(">>> done\n")
+    t := time.Now()
+    fmt.Print(t.Format(time.RFC3339))
+    fmt.Printf("\n")
+  }
 
-  t = time.Now()
-  fmt.Print(t.Format(time.RFC3339))
-  fmt.Printf("\n")
+  if local_debug {
+    fmt.Printf("starting web server...\n")
+  }
 
-
-  /*
-  knot := [][]int{}
-  knot = append(knot, []int{})
-  knot = append(knot, []int{})
-  knot[0] = append(knot[0], 0)
-  knot[0] = append(knot[0], 1)
-  knot[1] = append(knot[1], 0)
-  knot[1] = append(knot[1], 1)
-  ref_knot := []int{}
-  ref_knot = append(ref_knot, 0)
-  ref_knot = append(ref_knot, 1)
-  glfd.TileToGVCF(0x2fb, 0, 93, knot, ref_knot)
-  */
-
-  /*
-  knot := [][]int{}
-  knot = append(knot, []int{})
-  knot = append(knot, []int{})
-  knot[0] = append(knot[0], 2)
-  knot[0] = append(knot[0], 1)
-  knot[1] = append(knot[1], 2)
-  knot[1] = append(knot[1], 1)
-  ref_knot := []int{}
-  ref_knot = append(ref_knot, 0)
-  ref_knot = append(ref_knot, 1)
-  glfd.TileToGVCF(0x2fb, 0, 94, knot, ref_knot)
-  */
-
-  /*
-  knot := [][]int{}
-  knot = append(knot, []int{})
-  knot = append(knot, []int{})
-  knot[0] = append(knot[0], 1)
-  knot[0] = append(knot[0], 1)
-  knot[1] = append(knot[1], 16)
-  knot[1] = append(knot[1], 1)
-  ref_knot := []int{}
-  ref_knot = append(ref_knot, 0)
-  ref_knot = append(ref_knot, 1)
-  glfd.TileToGVCF(0x2fb, 0, 430, knot, ref_knot)
-  */
-
-  // TESTING
-  /*
-  knot := [][]int{}
-  knot = append(knot, []int{})
-  knot = append(knot, []int{})
-  knot[0] = append(knot[0], 0)
-  //knot[0] = append(knot[0], 1)
-  knot[0] = append(knot[0], 0)
-  //knot[0] = append(knot[0], 1)
-  knot[1] = append(knot[1], 1)
-  //knot[1] = append(knot[1], 2)
-  knot[1] = append(knot[1], -1)
-  //knot[1] = append(knot[1], -1)
-
-  loq_info := [][][]int{}
-  loq_info = append(loq_info, [][]int{})
-  loq_info = append(loq_info, [][]int{})
-  loq_info[0] = append(loq_info[0], []int{})
-  loq_info[0] = append(loq_info[0], []int{})
-  loq_info[1] = append(loq_info[1], []int{})
-  loq_info[1] = append(loq_info[1], []int{})
-  loq_info[0][0] = append(loq_info[0][0], 30)
-  loq_info[0][0] = append(loq_info[0][0], 2)
-  loq_info[0][1] = append(loq_info[0][1], 55)
-  loq_info[0][1] = append(loq_info[0][1], 7)
-
-  loq_info[1][0] = append(loq_info[1][0], 30)
-  loq_info[1][0] = append(loq_info[1][0], 2)
-  loq_info[1][0] = append(loq_info[1][0], 100)
-  loq_info[1][0] = append(loq_info[1][0], 7)
-
-  ref_knot := []int{}
-  ref_knot = append(ref_knot, 0)
-  //ref_knot = append(ref_knot, 1)
-  ref_knot = append(ref_knot, 0)
-  //ref_knot = append(ref_knot, 1)
-
-  s,e := glfd.TileToGVCF(0x2fb, 0, 632, knot, loq_info, ref_knot) ; _ = s
-  if e!=nil { panic(e) }
-
+  glfd.StartSrv()
   os.Exit(0)
-  */
 
   outs := bufio.NewWriter(os.Stdout)
 
@@ -673,7 +610,8 @@ func main() {
 
   fmt.Printf("\n>>> %v\n", v)
 
-  t = time.Now()
+
+  t := time.Now()
   fmt.Print(t.Format(time.RFC3339))
   fmt.Printf("\n")
 
