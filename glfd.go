@@ -339,6 +339,8 @@ func EmitGVCF(outs *bufio.Writer, chrom string, ref_pos int, ref_seq, x_seq, y_s
   //outs := bufio.NewWriter(os.Stdout)
 
   g := gvcf.GVCFRefVar{}
+  g.Init()
+  g.PrintHeader = false
   xy_pasta_rdr := bufio.NewReader(bytes.NewReader(xy_pasta_wtr.Bytes()))
 
   g.Chrom(chrom)
