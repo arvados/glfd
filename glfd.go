@@ -8,6 +8,8 @@ import "strings"
 import "strconv"
 import "io/ioutil"
 
+import "log"
+
 import "crypto/md5"
 
 import "time"
@@ -16,6 +18,8 @@ import "github.com/aebruno/twobit"
 
 import "github.com/abeconnelly/pasta"
 import "github.com/abeconnelly/pasta/gvcf"
+
+import "github.com/abeconnelly/sloppyjson"
 
 type GLFD struct {
 
@@ -626,11 +630,27 @@ func main() {
     fmt.Printf("\n")
   }
 
+  conf_s,e := ioutil.ReadFile("tile-server-conf.json")
+  if e!=nil { log.Fatal(fmt.Sprintf("could not load config file %s: %v", "tile-server-conf.json", e)); }
+  conf_json,e := sloppyjson.Loads(string(conf_s))
+  if e!=nil { log.Fatal(fmt.Sprintf("could not parse config file %s: %v", "tile-server-conf.json", e)); }
+
+  conf := make(map[string]string)
+  conf["glf"] = conf_json.O["glf"].S
+  conf["assembly"] = conf_json.O["assembly"].S
+  conf["tagset"] = conf_json.O["tagset"].S
+  conf["span"] = conf_json.O["span"].S
+  conf["glf-cache"] = conf_json.O["glf-cache"].S
+
+
+  /*
   glfd,e := GLFDInit("/scratch/l7g/glf/glf.2bit.path",
     "/scratch/l7g/assembly/assembly.00.hg19.fw.gz",
     "/scratch/l7g/tagset.2bit/tagset.2bit",
     "/scratch/l7g/glf/span/span.gz")
-  if e!=nil { panic(e) }
+    */
+  glfd,e := GLFDInit(conf)
+  if e!=nil { log.Fatal(e) }
 
   if local_debug {
     fmt.Printf(">>> done\n")

@@ -8,6 +8,9 @@ import "strings"
 import "strconv"
 import "io/ioutil"
 
+import "io"
+import "bytes"
+
 import "github.com/aebruno/twobit"
 import "github.com/abeconnelly/sloppyjson"
 
@@ -189,7 +192,62 @@ func (glfd *GLFD) InitAssembly(assembly_fn string) error {
   return nil
 }
 
-func (glfd *GLFD) InitCache() error {
+func (glfd *GLFD) InitCacheSGLF(cache_dir string) error {
+  glfd.SeqCache = make(map[int]map[int]map[int]string)
+
+  n:=len(glfd.RefV["hg19"]) ; _ = n
+
+  for tilepath:=0; tilepath<=0x35e; tilepath++ {
+
+    fmt.Printf("caching %x\n", tilepath);
+
+    glfd.SeqCache[tilepath] = make(map[int]map[int]string)
+
+    //fn := fmt.Sprintf("/scratch/l7g/sglf-cache/%04x.sglf-cache.gz", tilepath)
+    fn := fmt.Sprintf("%s/%04x.sglf-cache.gz", cache_dir, tilepath)
+    fp,e := os.Open(fn)
+    if e!=nil { return e }
+    defer fp.Close()
+    gr,e := gzip.NewReader(fp)
+    if e!=nil { return e }
+    defer gr.Close()
+
+    buf := bytes.NewBuffer(nil)
+    io.Copy(buf, gr)
+
+    lines := strings.Split(buf.String(), "\n")
+    for i:=0; i<len(lines); i++ {
+      if len(lines[i])==0 { continue }
+      parts := strings.Split(lines[i], ",")
+      tileid_span_parts := strings.Split(parts[0], "+")
+      tileid_parts := strings.Split(tileid_span_parts[0], ".")
+      _ = tileid_parts
+
+      _tilepath,e := strconv.ParseInt(tileid_parts[0], 16, 64)
+      if e!=nil { return e }
+
+      _tilestep,e := strconv.ParseInt(tileid_parts[2], 16, 64)
+      if e!=nil { return e }
+
+      _tilevarid,e := strconv.ParseInt(tileid_parts[3], 16, 64)
+      if e!=nil { return e }
+
+      if _,ok := glfd.SeqCache[int(_tilepath)][int(_tilestep)] ; !ok {
+        glfd.SeqCache[int(_tilepath)][int(_tilestep)] = make(map[int]string)
+      }
+
+      glfd.SeqCache[int(_tilepath)][int(_tilestep)][int(_tilevarid)] = parts[2]
+
+      //fmt.Printf("... %v\n", tileid_parts)
+    }
+
+  }
+
+  return nil
+
+}
+
+func (glfd *GLFD) InitCacheGLF() error {
 
   glfd.SeqCache = make(map[int]map[int]map[int]string)
 
@@ -225,12 +283,27 @@ func (glfd *GLFD) InitCache() error {
   return nil
 }
 
-func GLFDInit(glfd_dir, assembly_fn, tagset_fn, span_fn string) (*GLFD,error) {
+//func GLFDInit(glfd_dir, assembly_fn, tagset_fn, span_fn string) (*GLFD,error) {
+func GLFDInit(conf map[string]string) (*GLFD,error) {
   var glfd GLFD
+
+  glfd_dir    := conf["glf"]
+  assembly_fn := conf["assembly"]
+  tagset_fn   := conf["tagset"]
+  span_fn     := conf["span"]
+  cache_dir   := conf["glf-cache"]
 
   local_debug := true
 
   glfd.GLFDir = glfd_dir
+
+  //--
+  fmt.Printf(">>> testing cache\n")
+
+  er := glfd.InitCacheSGLF(cache_dir)
+  if er!=nil { return nil, er }
+
+
 
   //---
 
@@ -269,8 +342,9 @@ func GLFDInit(glfd_dir, assembly_fn, tagset_fn, span_fn string) (*GLFD,error) {
 
   //if local_debug { fmt.Printf("initalizing cache...\n") }
 
-  e = glfd.InitCache()
-  if e!=nil { return nil, e }
+  //e = glfd.InitCache()
+  //e = glfd.InitCacheSGLF()
+  //if e!=nil { return nil, e }
 
   //if local_debug { fmt.Printf("...done\n") }
 
