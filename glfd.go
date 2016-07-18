@@ -151,21 +151,33 @@ func (glfd *GLFD) TileLibSequences(tilepath int, tilelibver int, tilestep int) (
 }
 
 func (glfd *GLFD) TileSequence(tilepath int, tilelibver int, tilestep int, tilevar int) (string, error) {
+  opt_test := false
 
   if _,okp := glfd.SeqCache[tilepath] ; okp {
     if _,oks := glfd.SeqCache[tilepath][tilestep] ; oks {
       if seq,ok := glfd.SeqCache[tilepath][tilestep][tilevar] ; ok {
 
         //DEBUG
-        fmt.Printf("hit! (ts) %x.%x\n", tilepath, tilestep)
+        //fmt.Printf("hit! (ts) %x.%x\n", tilepath, tilestep)
 
         return seq, nil
       }
+
+      //OPT TEST (BREAKS FUNCTIONALITY TESTING PERFORMANCE)
+      //
+      // 5.7s for 11k steps
+      if opt_test {
+        if seq, ok := glfd.SeqCache[tilepath][tilestep][0] ; ok {
+          return seq, nil
+        }
+      }
+
     }
   }
 
+
   //DEBUG
-  fmt.Printf("miss (ts) %x.%x\n", tilepath, tilestep)
+  //fmt.Printf("miss (ts) %x.%x\n", tilepath, tilestep)
 
   //base_dir := "/mnt/tmpfs"
   base_dir := glfd.GLFDir
@@ -215,7 +227,9 @@ func (glfd *GLFD) TileSequence(tilepath int, tilelibver int, tilestep int, tilev
 
 // loq_info holds a packed integer array where even entries are start position and odd entries are length of the nocall sequence.
 //
+// right now its about 30s for 11k steps
 func (glfd *GLFD)  TileSequenceLoq(tilepath int, tilelibver int, tilestep int, tilevar int, loq_info []int) (string, error) {
+  opt_test := false
 
   seq := []byte{}
 
@@ -224,18 +238,30 @@ func (glfd *GLFD)  TileSequenceLoq(tilepath int, tilelibver int, tilestep int, t
       if seqstr,ok := glfd.SeqCache[tilepath][tilestep][tilevar] ; ok {
 
         //DEBUG
-        fmt.Printf("hit! (tslq) %x.%x\n", tilepath, tilestep)
+        //fmt.Printf("hit! (tslq) %x.%x\n", tilepath, tilestep)
 
         seq = []byte(seqstr)
 
       }
+
+      //OPT TEST (BREAKS FUNCTIONALITY TESTING PERFORMANCE)
+      //
+      // 5.7s for 11k steps
+      if opt_test {
+        if seqstr, ok := glfd.SeqCache[tilepath][tilestep][0] ; ok {
+          return seqstr, nil
+        }
+      }
+
+
     }
   }
+
 
   if len(seq)==0 {
 
     //DEBUG
-    fmt.Printf("miss (tslq) %x.%x\n", tilepath, tilestep)
+    //fmt.Printf("miss (tslq) %x.%x\n", tilepath, tilestep)
 
 
     //base_dir := "/mnt/tmpfs"
@@ -321,13 +347,24 @@ func EmitGVCFHeader(outs *bufio.Writer) {
 }
 
 func EmitGVCF(outs *bufio.Writer, chrom string, ref_pos int, ref_seq, x_seq, y_seq string) {
+  local_debug := false
   var e error
 
   x_ref,x_align,_ := dna_align(ref_seq, x_seq)
   y_ref,y_align,_ := dna_align(ref_seq, y_seq)
 
+  if local_debug {
+    fmt.Printf(">>>>>>>>>> x:\nref: %s\nalt: %s\n", x_ref, x_align)
+    fmt.Printf("<<<<<<<<<< y:\nref: %s\nalt: %s\n", y_ref, y_align)
+  }
+
   x_pasta,_ := AlignToPasta(x_ref, x_align)
   y_pasta,_ := AlignToPasta(y_ref, y_align)
+
+  if local_debug {
+    fmt.Printf("x.pasta: %s\n", x_pasta)
+    fmt.Printf("y.pasta: %s\n", y_pasta)
+  }
 
   x_pasta_rdr := bytes.NewReader([]byte(x_pasta))
   y_pasta_rdr := bytes.NewReader([]byte(y_pasta))
@@ -335,6 +372,12 @@ func EmitGVCF(outs *bufio.Writer, chrom string, ref_pos int, ref_seq, x_seq, y_s
 
   e = pasta.InterleaveStreams(x_pasta_rdr, y_pasta_rdr, xy_pasta_wtr) ; _ = e
   //if e!=nil { return e }
+
+  if local_debug {
+    fmt.Printf("i.pasta: %s\n", xy_pasta_wtr.Bytes())
+  }
+
+
 
   //outs := bufio.NewWriter(os.Stdout)
 
@@ -463,6 +506,11 @@ func (glfd *GLFD) TileToGVCFx(tilepath, tilelibver, anchor_tilestep int, varid_k
 */
 
 func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_tilestep int, varid [][]int, loq_info [][][]int, ref_varid []int) (string, error) {
+  opt_test := false; _ = opt_test
+
+  // 2.5 s for 11k paths
+  //if opt_test { return "", nil }
+
   seq_a := [2][]string{}
   ref_a := []string{}
 
@@ -481,7 +529,7 @@ func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_ti
   for step_idx:=0; step_idx < n; {
 
     //DEBUG
-    fmt.Printf("## %d / %d\n", step_idx, n)
+    //fmt.Printf("## %d / %d\n", step_idx, n)
 
     z := step_idx+1
     for (z<n) && ((varid[0][z]<0) || (varid[1][z]<0)) { z++ }

@@ -269,8 +269,8 @@ func GLFDInit(glfd_dir, assembly_fn, tagset_fn, span_fn string) (*GLFD,error) {
 
   //if local_debug { fmt.Printf("initalizing cache...\n") }
 
-  //e = glfd.InitCache()
-  //if e!=nil { return nil, e }
+  e = glfd.InitCache()
+  if e!=nil { return nil, e }
 
   //if local_debug { fmt.Printf("...done\n") }
 
