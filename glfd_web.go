@@ -73,14 +73,15 @@ func (glfd *GLFD) WebExec(w http.ResponseWriter, req *http.Request) {
   }
 
   io.WriteString(w, rstr)
-
-  //io.WriteString(w, `{"value":"ok"}`)
 }
 
-func (glfd *GLFD) StartSrv() {
+func (glfd *GLFD) StartSrv() error {
   http.HandleFunc("/", glfd.WebDefault)
   http.HandleFunc("/exec", glfd.WebExec)
   http.HandleFunc("/about", glfd.WebAbout)
   http.HandleFunc("/i", glfd.WebInteractive)
-  http.ListenAndServe(":8081", nil)
+
+  //http.ListenAndServe(":8081", nil)
+  port_str := fmt.Sprintf("%d", glfd.Port)
+  return http.ListenAndServe(":" + port_str, nil)
 }

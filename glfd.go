@@ -46,6 +46,8 @@ type GLFD struct {
   // Location of library files
   //
   GLFDir string
+
+  Port int
 }
 
 func Md5sum2str(md5sum [16]byte) string {
@@ -611,17 +613,8 @@ func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_ti
   return "", nil
 }
 
-// TESTING
-//
 func main() {
   local_debug := true
-
-
-  //tglfd := GLFD{}
-  //tglfd.StartSrv()
-  //os.Exit(0)
-
-
 
   if local_debug {
     fmt.Printf(">>> loading...\n")
@@ -642,15 +635,10 @@ func main() {
   conf["span"] = conf_json.O["span"].S
   conf["glf-cache"] = conf_json.O["glf-cache"].S
 
-
-  /*
-  glfd,e := GLFDInit("/scratch/l7g/glf/glf.2bit.path",
-    "/scratch/l7g/assembly/assembly.00.hg19.fw.gz",
-    "/scratch/l7g/tagset.2bit/tagset.2bit",
-    "/scratch/l7g/glf/span/span.gz")
-    */
   glfd,e := GLFDInit(conf)
   if e!=nil { log.Fatal(e) }
+
+  glfd.Port = int(conf_json.O["port"].P)
 
   if local_debug {
     fmt.Printf(">>> done\n")
@@ -663,44 +651,8 @@ func main() {
     fmt.Printf("starting web server...\n")
   }
 
-  glfd.StartSrv()
+  e = glfd.StartSrv()
+  if e!=nil { log.Fatal(e) }
+
   os.Exit(0)
-
-  outs := bufio.NewWriter(os.Stdout)
-
-  x,_ := glfd.TileSequence(3, 0, 13, 3)
-  y,_ := glfd.TileSequence(3, 0, 13, 2)
-  r,_ := glfd.TileSequence(3, 0, 13, 0)
-
-  EmitGVCF(outs, "unk", 0, r, x, y)
-
-  v,e := glfd.JSVMRun(` function f() { return 333; } ; var obj = { "x" : "y", "z" : 3 }; var abc = 2+2; console.log("...", abc); abc; f(); glfd_return(obj); `)
-  if e!=nil { panic(e) }
-
-  fmt.Printf("\n>>> %v\n", v)
-
-
-  t := time.Now()
-  fmt.Print(t.Format(time.RFC3339))
-  fmt.Printf("\n")
-
-
-  sampq,e := ioutil.ReadFile("js/sample-query.js")
-  //sampq,e := ioutil.ReadFile("js/p2fb.js")
-  //sampq,e := ioutil.ReadFile("js/p2fb_x.js")
-  if e!=nil { panic(e) }
-
-
-
-  //v,e = JSVM_run(string(sampq))
-  v,e = glfd.JSVMRun(string(sampq))
-  if e!=nil { panic(e); }
-  fmt.Printf("sample-query.js: %v\n", v)
-
-  t = time.Now()
-  fmt.Print(t.Format(time.RFC3339))
-  fmt.Printf("\n")
-
-  glfd.StartSrv()
-
 }

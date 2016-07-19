@@ -1,0 +1,8 @@
+{
+  "glf":"data/glf/glf.2bit.path",
+  "assembly":"data/assembly/assembly.00.hg19.fw.gz",
+  "tagset":"data/tagset.2bit/tagset.2bit",
+  "span":"data/glf/span/span.gz",
+  "glf-cache":"data/sglf-cache",
+  "port":8081
+}
