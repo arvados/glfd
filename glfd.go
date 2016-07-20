@@ -34,7 +34,11 @@ type GLFD struct {
 
   SeqCache map[int]map[int]map[int]string
 
+  // . Reference name
+  // .. step
+  // ... loqv
   RefV map[string]map[int][]int
+  RefLoq map[string]map[int][][]int
 
   Tagset map[int]string
 
@@ -511,7 +515,7 @@ func (glfd *GLFD) TileToGVCFx(tilepath, tilelibver, anchor_tilestep int, varid_k
 }
 */
 
-func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_tilestep int, varid [][]int, loq_info [][][]int, ref_varid []int) (string, error) {
+func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_tilestep int, varid [][]int, loq_info [][][]int, ref_varid []int, ref_loq_info [][][]int, skip_tag_pfx bool) (string, error) {
   opt_test := false; _ = opt_test
 
   // 2.5 s for 11k paths
@@ -560,8 +564,17 @@ func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_ti
     ref_a = ref_a[0:0]
     for pos:=step_idx; pos<z; pos++ {
       if (ref_varid[pos]<0) { continue; }
-      s,e := glfd.TileSequence(tilepath, tilelibver, anchor_tilestep + pos, ref_varid[pos])
+      //s,e := glfd.TileSequence(tilepath, tilelibver, anchor_tilestep + pos, ref_varid[pos])
+      s,e := glfd.TileSequenceLoq(tilepath, tilelibver, anchor_tilestep + pos, ref_varid[pos], ref_loq_info[0][pos])
       if e!=nil { return "", e }
+
+      //DEBUG
+      /*
+      fmt.Printf("%04x.%02x.%04x, ref_varid[%d] %d, ref_loq_info[%d][%d] %v\n", tilepath, tilelibver, anchor_tilestep, pos, ref_varid[pos], 0, pos, ref_loq_info[0][pos])
+      tcount :=0
+      for ii:=0; ii<len(s); ii++ { if s[ii]=='n' { tcount++; } }
+      fmt.Printf("  noc %d\n", tcount)
+      */
 
       trail_ref_tag = s[len(s)-24:]
 
@@ -594,16 +607,31 @@ func (glfd *GLFD) TileToGVCF(outs *bufio.Writer, tilepath, tilelibver, anchor_ti
       m := len(glfd.Assembly["hg19"][tilepath-1])
       ref_pos = glfd.Assembly["hg19"][tilepath-1][m-1]
 
+      if glfd.TilepathToChrom[tilepath] != glfd.TilepathToChrom[tilepath-1] {
+        ref_pos=0
+      }
+
       if m==(anchor_tilestep+step_idx) { last_step_in_path = true }
       first_step_in_path = true
+    } else if tilepath==0 {
+      m := len(glfd.Assembly["hg19"][tilepath])
+      if (anchor_tilestep+step_idx)==0 { first_step_in_path = true }
+      if m==(anchor_tilestep+step_idx) { last_step_in_path = true }
     }
 
     _ = last_step_in_path
 
+    //DEBUG
+    //fmt.Printf(" first_step %v, last_step %v\n", first_step_in_path, last_step_in_path)
+
     if first_step_in_path {
       EmitGVCF(outs, chrom, ref_pos, refseq, seq0, seq1)
     } else {
-      EmitGVCF(outs, chrom, ref_pos, refseq[24:], seq0[24:], seq1[24:])
+      if skip_tag_pfx {
+        EmitGVCF(outs, chrom, ref_pos, refseq[24:], seq0[24:], seq1[24:])
+      } else {
+        EmitGVCF(outs, chrom, ref_pos-24, refseq, seq0, seq1)
+      }
     }
 
     step_idx = z

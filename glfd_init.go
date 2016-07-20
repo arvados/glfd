@@ -95,18 +95,27 @@ func (glfd *GLFD) InitHg19(hg19_json_fn string) error {
 
   glfd.RefV = make( map[string]map[int][]int )
   glfd.RefV["hg19"] = make( map[int][]int )
+
+  glfd.RefLoq = make( map[string]map[int][][]int )
+  glfd.RefLoq["hg19"] = make( map[int][][]int )
+
   for k,_ := range hgo.O {
     tilepath := int(hgo.O[k].O["tilepath"].P)
 
-    //DEBUG
-    //fmt.Printf(">> %d (%x)\n", tilepath, tilepath)
-
     allele := []int{}
+    loq_info := [][]int{}
     for i:=0; i<len(hgo.O[k].O["allele"].L[0].L); i++ {
       allele = append(allele, int(hgo.O[k].O["allele"].L[0].L[i].P))
+
+      loqv := []int{}
+      for j:=0; j<len(hgo.O[k].O["loq_info"].L[0].L[i].L); j++ {
+        loqv = append(loqv, int(hgo.O[k].O["loq_info"].L[0].L[i].L[j].P))
+      }
+      loq_info = append(loq_info, loqv)
     }
 
     glfd.RefV["hg19"][tilepath] = allele
+    glfd.RefLoq["hg19"][tilepath] = loq_info
   }
 
   return nil
@@ -291,17 +300,11 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
   assembly_fn := conf["assembly"]
   tagset_fn   := conf["tagset"]
   span_fn     := conf["span"]
-  cache_dir   := conf["glf-cache"]
+  cache_dir   := conf["glf-cache"] ; _ = cache_dir
 
   local_debug := true
 
   glfd.GLFDir = glfd_dir
-
-  //--
-  fmt.Printf(">>> testing cache\n")
-
-  er := glfd.InitCacheSGLF(cache_dir)
-  if er!=nil { return nil, er }
 
 
 
@@ -328,6 +331,7 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
   if local_debug { fmt.Printf("initializing tagset: ") }
 
   e = glfd.InitTagset(tagset_fn)
+  if e!=nil { return nil, e }
 
   if local_debug { fmt.Printf("done\n") }
 
@@ -336,17 +340,18 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
   if local_debug { fmt.Printf("initializing span: ") }
 
   e = glfd.InitSpan(span_fn)
+  if e!=nil { return nil, e }
 
   if local_debug { fmt.Printf("done\n") }
 
+  //---
 
-  //if local_debug { fmt.Printf("initalizing cache...\n") }
+  if local_debug { fmt.Printf("initalizing cache...\n") }
 
-  //e = glfd.InitCache()
-  //e = glfd.InitCacheSGLF()
-  //if e!=nil { return nil, e }
+  er := glfd.InitCacheSGLF(cache_dir)
+  if er!=nil { return nil, er }
 
-  //if local_debug { fmt.Printf("...done\n") }
+  if local_debug { fmt.Printf("...done\n") }
 
   return &glfd,nil
 }

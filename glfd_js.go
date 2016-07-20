@@ -247,6 +247,15 @@ func (glfd *GLFD) tiletogvcf_otto(call otto.FunctionCall) otto.Value {
   tilepath := int(jso.O["tilepath"].P)
   start_tilestep := int(jso.O["start_tilestep"].P)
 
+  skip_tag_pfx := false
+  if _,ok := jso.O["skip_tag_prefix"] ; ok {
+    if jso.O["skip_tag_prefix"].Y == "false" {
+      skip_tag_pfx = false
+    } else if jso.O["skip_tag_prefix"].Y == "true" {
+      skip_tag_pfx = true
+    }
+  }
+
   allele := [][]int{}
   allele = append(allele, []int{})
   allele = append(allele, []int{})
@@ -281,6 +290,14 @@ func (glfd *GLFD) tiletogvcf_otto(call otto.FunctionCall) otto.Value {
     ref_varid = append(ref_varid, glfd.RefV["hg19"][tilepath][start_tilestep+i])
   }
 
+  ref_loq_info := [][][]int{}
+  ref_loq_info = append(ref_loq_info, [][]int{})
+  ref_loq_info = append(ref_loq_info, [][]int{})
+  for i:=0; i<len(allele[0]); i++ {
+    ref_loq_info[0] = append(ref_loq_info[0], glfd.RefLoq["hg19"][tilepath][start_tilestep+i])
+    ref_loq_info[1] = append(ref_loq_info[1], glfd.RefLoq["hg19"][tilepath][start_tilestep+i])
+  }
+
   _ = start_tilestep
   _ = allele
   _ = nocall
@@ -288,7 +305,9 @@ func (glfd *GLFD) tiletogvcf_otto(call otto.FunctionCall) otto.Value {
   bb := new(bytes.Buffer)
   outs := bufio.NewWriter(bb)
 
-  s,e := glfd.TileToGVCF(outs, tilepath, 0, start_tilestep, allele, nocall, ref_varid) ; _ = s
+  //s,e := glfd.TileToGVCF(outs, tilepath, 0, start_tilestep, allele, nocall, ref_varid) ; _ = s
+  //s,e := glfd.TileToGVCF(outs, tilepath, 0, start_tilestep, allele, nocall, ref_varid, ref_loq_info) ; _ = s
+  s,e := glfd.TileToGVCF(outs, tilepath, 0, start_tilestep, allele, nocall, ref_varid, ref_loq_info, skip_tag_pfx) ; _ = s
   if e!=nil {
     //panic(e)
     v,err := otto.ToValue( fmt.Sprintf("%v", e) )
