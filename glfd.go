@@ -356,12 +356,50 @@ func EmitGVCFHeader(outs *bufio.Writer) {
   g.Header(outs)
 }
 
+func ClumsyAlign(ref_seq, alt_seq string) (string, string) {
+  ref := []byte{}
+  alt := []byte{}
+
+  m := len(ref_seq)
+  if m > len(alt_seq) { m = len(alt_seq) }
+
+  for i:=0; i<m; i++ {
+    ref = append(ref, ref_seq[i])
+    alt = append(alt, alt_seq[i])
+  }
+
+  for i:=m; i<len(ref_seq); i++ {
+    ref = append(ref, ref_seq[i])
+    alt = append(alt, '-')
+  }
+
+  for i:=m; i<len(alt_seq); i++ {
+    ref = append(ref, '-')
+    alt = append(alt, alt_seq[i])
+  }
+
+  return string(ref), string(alt)
+}
+
 func EmitGVCF(outs *bufio.Writer, chrom string, ref_pos int, ref_seq, x_seq, y_seq string) {
   local_debug := false
   var e error
 
-  x_ref,x_align,_ := dna_align(ref_seq, x_seq)
-  y_ref,y_align,_ := dna_align(ref_seq, y_seq)
+  length_bound := 5000
+
+  var x_ref, y_ref, x_align, y_align string
+
+  if (len(ref_seq) > length_bound) || (len(x_seq)>length_bound) {
+    x_ref,x_align = ClumsyAlign(ref_seq, x_seq)
+  } else {
+    x_ref,x_align,_ = dna_align(ref_seq, x_seq)
+  }
+
+  if (len(ref_seq) > length_bound) || (len(x_seq)>length_bound) {
+    y_ref,y_align = ClumsyAlign(ref_seq, y_seq)
+  } else {
+    y_ref,y_align,_ = dna_align(ref_seq, y_seq)
+  }
 
   if local_debug {
     fmt.Printf(">>>>>>>>>> x:\nref: %s\nalt: %s\n", x_ref, x_align)
