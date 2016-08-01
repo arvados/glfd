@@ -689,10 +689,16 @@ func main() {
     fmt.Printf("\n")
   }
 
-  conf_s,e := ioutil.ReadFile("tile-server-conf.json")
-  if e!=nil { log.Fatal(fmt.Sprintf("could not load config file %s: %v", "tile-server-conf.json", e)); }
+  cfg_fn := "./tile-server-conf.json"
+  if len(os.Args) > 1 {
+    cfg_fn = os.Args[1]
+  }
+
+  //conf_s,e := ioutil.ReadFile("tile-server-conf.json")
+  conf_s,e := ioutil.ReadFile(cfg_fn)
+  if e!=nil { log.Fatal(fmt.Sprintf("could not load config file %s: %v", cfg_fn, e)); }
   conf_json,e := sloppyjson.Loads(string(conf_s))
-  if e!=nil { log.Fatal(fmt.Sprintf("could not parse config file %s: %v", "tile-server-conf.json", e)); }
+  if e!=nil { log.Fatal(fmt.Sprintf("could not parse config file %s: %v", cfg_fn, e)); }
 
   conf := make(map[string]string)
   conf["glf"] = conf_json.O["glf"].S
