@@ -15,6 +15,8 @@ import "github.com/robertkrimen/otto"
 
 import "github.com/abeconnelly/sloppyjson"
 
+import "crypto/md5"
+
 //import "reflect"
 
 func status_otto(call otto.FunctionCall) otto.Value {
@@ -121,6 +123,37 @@ func (glfd *GLFD) tilesequence_otto(call otto.FunctionCall) otto.Value {
   if e!=nil { return otto.Value{} }
 
   s,e := glfd.TileSequence(int(tilepath), int(libver), int(tilestep), int(tilevarid))
+  if e!=nil { return otto.Value{} }
+
+  v,e := otto.ToValue(s)
+  return v
+}
+
+
+func (glfd *GLFD) seqmd5sum_otto(call otto.FunctionCall) otto.Value {
+  seq_str := call.Argument(0).String();
+  m5str := Md5sum2str( md5.Sum([]byte(seq_str)) )
+  v,e := otto.ToValue(m5str) ; _ = e
+  return v
+}
+
+func (glfd *GLFD) tilesequenceloq_otto(call otto.FunctionCall) otto.Value {
+
+  arg_str := call.Argument(0).String();
+  arg_json,e := sloppyjson.Loads(arg_str)
+  if e!=nil { return otto.Value{} }
+
+  tilepath := int(arg_json.O["tile-path"].P)
+  libver := int(arg_json.O["tile-lib-version"].P)
+  tilestep := int(arg_json.O["tile-step"].P)
+  tilevarid := int(arg_json.O["tile-variant-id"].P)
+
+  loq_info := []int{}
+  for i:=0; i<len(arg_json.O["loq-info"].L); i++ {
+    loq_info = append(loq_info, int(arg_json.O["loq-info"].L[i].P))
+  }
+
+  s,e := glfd.TileSequenceLoq(int(tilepath), int(libver), int(tilestep), int(tilevarid), loq_info)
   if e!=nil { return otto.Value{} }
 
   v,e := otto.ToValue(s)
@@ -388,6 +421,8 @@ func (glfd *GLFD) JSVMRun(src string) (rstr string, e error) {
 
   js_vm.Set("status", status_otto)
   js_vm.Set("tilesequence", glfd.tilesequence_otto)
+  js_vm.Set("tilesequenceloq", glfd.tilesequenceloq_otto)
+  js_vm.Set("seqmd5sum", glfd.seqmd5sum_otto)
   js_vm.Set("aligntopasta", align2pasta_otto)
   js_vm.Set("align", align_otto)
   //js_vm.Set("emitgvcf", emitgvcf_otto)

@@ -4,5 +4,6 @@
   "tagset":"data/tagset.2bit/tagset.2bit",
   "span":"data/glf/span/span.gz",
   "glf-cache":"data/sglf-cache",
+  "hg19.json":"js/hg19.json",
   "port":8081
 }

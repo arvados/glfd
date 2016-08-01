@@ -301,6 +301,7 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
   tagset_fn   := conf["tagset"]
   span_fn     := conf["span"]
   cache_dir   := conf["glf-cache"] ; _ = cache_dir
+  hg19_json   := conf["hg19.json"]
 
   local_debug := true
 
@@ -312,7 +313,8 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
 
   if local_debug { fmt.Printf("initializing hg19.json: ") }
 
-  e := glfd.InitHg19("js/hg19.json")
+  //e := glfd.InitHg19("js/hg19.json")
+  e := glfd.InitHg19(hg19_json)
   if e!=nil { return nil, e }
 
   if local_debug { fmt.Printf("done\n") }
@@ -348,8 +350,8 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
 
   if local_debug { fmt.Printf("initalizing cache...\n") }
 
-  er := glfd.InitCacheSGLF(cache_dir)
-  if er!=nil { return nil, er }
+  //er := glfd.InitCacheSGLF(cache_dir)
+  //if er!=nil { return nil, er }
 
   if local_debug { fmt.Printf("...done\n") }
 

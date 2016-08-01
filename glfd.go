@@ -700,6 +700,7 @@ func main() {
   conf["tagset"] = conf_json.O["tagset"].S
   conf["span"] = conf_json.O["span"].S
   conf["glf-cache"] = conf_json.O["glf-cache"].S
+  conf["hg19.json"] = conf_json.O["hg19.json"].S
 
   glfd,e := GLFDInit(conf)
   if e!=nil { log.Fatal(e) }
