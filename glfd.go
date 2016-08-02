@@ -51,6 +51,8 @@ type GLFD struct {
   //
   GLFDir string
 
+  JSDir string
+
   Port int
 }
 
@@ -707,6 +709,7 @@ func main() {
   conf["span"] = conf_json.O["span"].S
   conf["glf-cache"] = conf_json.O["glf-cache"].S
   conf["hg19.json"] = conf_json.O["hg19.json"].S
+  conf["js-dir"] = conf_json.O["js-dir"].S
 
   glfd,e := GLFDInit(conf)
   if e!=nil { log.Fatal(e) }

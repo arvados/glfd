@@ -415,7 +415,8 @@ func (glfd *GLFD) JSVMRun(src string) (rstr string, e error) {
 
   fmt.Printf("JSVM_run:\n\n")
 
-  init_js,err := ioutil.ReadFile("js/init.js")
+  //init_js,err := ioutil.ReadFile("js/init.js")
+  init_js,err := ioutil.ReadFile( glfd.JSDir + "/init.js")
   if err!=nil { e = err; return }
   js_vm.Run(init_js)
 
