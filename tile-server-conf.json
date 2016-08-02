@@ -8,5 +8,5 @@
   "js-dir":"js",
   "html-dir":"html",
   "example-dir":"example",
-  "port":8881
+  "port":8081
 }

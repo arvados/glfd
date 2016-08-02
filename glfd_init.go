@@ -356,8 +356,8 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
 
   if local_debug { fmt.Printf("initalizing cache...\n") }
 
-  //er := glfd.InitCacheSGLF(cache_dir)
-  //if er!=nil { return nil, er }
+  er := glfd.InitCacheSGLF(cache_dir)
+  if er!=nil { return nil, er }
 
   if local_debug { fmt.Printf("...done\n") }
 
