@@ -48,13 +48,15 @@ func (glfd *GLFD) WebDefault(w http.ResponseWriter, req *http.Request) {
 
 
 func (glfd *GLFD) WebAbout(w http.ResponseWriter, req *http.Request) {
-  str,e := ioutil.ReadFile("html/about.html")
+  //str,e := ioutil.ReadFile("html/about.html")
+  str,e := ioutil.ReadFile( glfd.HTMLDir + "/about.html")
   if e!=nil { io.WriteString(w, "error") ; return }
   io.WriteString(w, string(str))
 }
 
 func (glfd *GLFD) WebInteractive(w http.ResponseWriter, req *http.Request) {
-  str,e := ioutil.ReadFile("html/index.html")
+  //str,e := ioutil.ReadFile("html/index.html")
+  str,e := ioutil.ReadFile( glfd.HTMLDir + "/index.html")
   if e!=nil { io.WriteString(w, "error") ; return }
   io.WriteString(w, string(str))
 }

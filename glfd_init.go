@@ -303,12 +303,16 @@ func GLFDInit(conf map[string]string) (*GLFD,error) {
   cache_dir   := conf["glf-cache"] ; _ = cache_dir
   hg19_json   := conf["hg19.json"]
   js_dir      := conf["js-dir"]
+  html_dir    := conf["html-dir"]
 
   local_debug := true
 
   glfd.GLFDir = glfd_dir
   glfd.JSDir = js_dir
+  glfd.HTMLDir = html_dir
 
+  //DEBUG
+  fmt.Printf("glfdir %s, jsdir %s, htmldir %s\n", glfd.GLFDir, glfd.JSDir, glfd.HTMLDir)
 
 
   //---

@@ -6,5 +6,7 @@
   "glf-cache":"data/sglf-cache",
   "hg19.json":"js/hg19.json",
   "js-dir":"js",
+  "html-dir":"html",
+  "example-dir":"example",
   "port":8881
 }

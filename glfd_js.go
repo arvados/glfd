@@ -417,7 +417,11 @@ func (glfd *GLFD) JSVMRun(src string) (rstr string, e error) {
 
   //init_js,err := ioutil.ReadFile("js/init.js")
   init_js,err := ioutil.ReadFile( glfd.JSDir + "/init.js")
-  if err!=nil { e = err; return }
+  if err!=nil {
+    e = err;
+    fmt.Printf("init.js failure: %v\n", err)
+    return
+  }
   js_vm.Run(init_js)
 
   js_vm.Set("status", status_otto)
