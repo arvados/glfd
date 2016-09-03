@@ -80,8 +80,11 @@ func (glfd *GLFD) WebExec(w http.ResponseWriter, req *http.Request) {
 func (glfd *GLFD) StartSrv() error {
   http.HandleFunc("/", glfd.WebDefault)
   http.HandleFunc("/exec", glfd.WebExec)
+  http.HandleFunc("/exec/", glfd.WebExec)
   http.HandleFunc("/about", glfd.WebAbout)
+  http.HandleFunc("/about/", glfd.WebAbout)
   http.HandleFunc("/i", glfd.WebInteractive)
+  http.HandleFunc("/i/", glfd.WebInteractive)
 
   //http.ListenAndServe(":8081", nil)
   port_str := fmt.Sprintf("%d", glfd.Port)
