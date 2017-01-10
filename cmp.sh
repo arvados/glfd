@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# Requires asm_ukk.a from the 'asmukk' repository
+#
 
 #libdir="/data-sde/scripts/lib/htslib-1.3.1"
 #incdir="/data-sde/scripts/lib/htslib-1.3.1"
