@@ -234,17 +234,24 @@ function api_locus_req(assembly_name, assembly_pdh, tilepos_str) {
   var tilepath = parseInt(tilepos_parts[1], 16);
   var tilestep = parseInt(tilepos_parts[2], 16);
 
+  var chrom = glfd_assembly_chrom(assembly_name, assembly_pdh, tilepath);
+
   var end_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep);
   var beg_pos = 0;
-  if (tilstep>0) {
+  if (tilestep>0) {
     beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep-1);
   }
   else if (tilepath>0) {
     var end_step = glf_info.StepPerPath[tilepath-1]-1;
-    beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath-1, tilever, end_step);
-  }
 
-  var chrom = glfd_assembly_chrom(assembly_name, assembly_pdh, tilepath);
+    var prev_chrom = glfd_assembly_chrom(assembly_name, assembly_pdh, tilepath-1);
+    if (prev_chrom.toString() == chrom.toString()) {
+      beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath-1, tilever, end_step);
+    } else {
+      beg_pos = 0;
+    }
+
+  }
 
   r.push({
     "assembly-name":assembly_name,
