@@ -3,8 +3,8 @@ package main
 import "fmt"
 
 /*
-#cgo CFLAGS: -I/data-sdd/scripts/lib/htslib-1.3.1
-#cgo LDFLAGS: -L/data-sdd/scripts/lib/htslib-1.3.1 -lhts
+#cgo CFLAGS: -I./htslib
+#cgo LDFLAGS: -L./htslib -lhts
 #include <stdio.h>
 #include <stdlib.h>
 #include "htslib/bgzf.h"
