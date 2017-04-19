@@ -239,14 +239,14 @@ function api_locus_req(assembly_name, assembly_pdh, tilepos_str) {
   var end_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep);
   var beg_pos = 0;
   if (tilestep>0) {
-    beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep-1);
+    beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath, tilever, tilestep-1) - 24;
   }
   else if (tilepath>0) {
     var end_step = glf_info.StepPerPath[tilepath-1]-1;
 
     var prev_chrom = glfd_assembly_chrom(assembly_name, assembly_pdh, tilepath-1);
     if (prev_chrom.toString() == chrom.toString()) {
-      beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath-1, tilever, end_step);
+      beg_pos = glfd_assembly_end_pos(assembly_name, assembly_pdh, tilepath-1, tilever, end_step) - 24;
     } else {
       beg_pos = 0;
     }
